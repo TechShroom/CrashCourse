@@ -317,7 +317,8 @@ public class LUtils {
 	 * @param buf
 	 *            - the buffer to shrink
 	 * @param oldWidthHeight
-	 *            - the old width and height
+	 *            - the old width and height (should multiply with
+	 *            extraDimensions to equal buf.capacity())
 	 * @param choppedWidth
 	 *            - the new (smaller) width
 	 * @param choppedHeight
@@ -332,19 +333,22 @@ public class LUtils {
 			int extraDimensions) {
 		if (buf.capacity() < choppedWidth * choppedHeight * extraDimensions
 				|| oldWidthHeight.height < choppedHeight
-				|| oldWidthHeight.width < choppedWidth) {
+				|| oldWidthHeight.width < choppedWidth || extraDimensions < 1) {
 			throw new IndexOutOfBoundsException(
-					"One of the dimensions is breaking the capacity of the buffer!");
+					"One of the dimensions is breaking the bounds of the buffer!");
 		}
 		if (buf.capacity() > buf.remaining()) {
 			buf.rewind();
 		}
 		ByteBuffer newBuf = ByteBuffer.allocateDirect(choppedWidth
 				* choppedHeight * extraDimensions);
-		for (int x = 0; x < oldWidthHeight.width; x++) {
-			for (int y = 0; y < oldWidthHeight.height; y++) {
-				for (int pix = 0; pix < 4; pix++) {
-				}
+		for (int i = 0; i < oldWidthHeight.width * oldWidthHeight.height
+				* extraDimensions; i += extraDimensions) {
+			int x = (i / extraDimensions) / (oldWidthHeight.width);
+			int y = (i / extraDimensions) % (oldWidthHeight.height);
+			for (int extra = 0; extra < extraDimensions; extra++) {
+				System.err.println("x_" + x + " y_" + y + " e_" + extra + "="
+						+ buf.get(i+extra));
 			}
 		}
 		return null;
