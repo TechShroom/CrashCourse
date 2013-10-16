@@ -314,6 +314,8 @@ public class LUtils {
 	 * Chops a buffer to the specified width, height, and possibly an extra
 	 * dimension.
 	 * 
+	 * The returned buffer is rewinded.
+	 * 
 	 * @param buf
 	 *            - the buffer to shrink
 	 * @param oldWidthHeight
@@ -342,15 +344,27 @@ public class LUtils {
 		}
 		ByteBuffer newBuf = ByteBuffer.allocateDirect(choppedWidth
 				* choppedHeight * extraDimensions);
+		byte[][][] arrayOfStuff = new byte[choppedWidth][choppedHeight][extraDimensions];
 		for (int i = 0; i < oldWidthHeight.width * oldWidthHeight.height
 				* extraDimensions; i += extraDimensions) {
 			int x = (i / extraDimensions) / (oldWidthHeight.width);
 			int y = (i / extraDimensions) % (oldWidthHeight.height);
+			System.err.println("x/y=" + String.format("%s/%s", x, y));
+			if (x >= choppedWidth || y >= choppedHeight) {
+				continue;
+			}
 			for (int extra = 0; extra < extraDimensions; extra++) {
-				System.err.println("x_" + x + " y_" + y + " e_" + extra + "="
-						+ buf.get(i+extra));
+				arrayOfStuff[x][y][extra] = buf.get(i + extra);
 			}
 		}
-		return null;
+		for (byte[][] b2d : arrayOfStuff) {
+			for (byte[] b1d : b2d) {
+				for (byte b : b1d) {
+					newBuf.put(b);
+				}
+			}
+		}
+		newBuf.rewind();
+		return newBuf;
 	}
 }
