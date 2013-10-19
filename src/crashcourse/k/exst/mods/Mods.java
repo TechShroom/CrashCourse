@@ -6,4 +6,8 @@ public class Mods {
 		
 	}
 
+	public static void registerRenders() {
+		
+	}
+
 }
