@@ -11,9 +11,11 @@ import org.lwjgl.Sys;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 
+import crashcourse.k.exst.mods.Mods;
 import crashcourse.k.library.debug.FPS;
 import crashcourse.k.library.lwjgl.control.Keys;
 import crashcourse.k.library.lwjgl.control.MouseHelp;
+import crashcourse.k.library.lwjgl.render.GLState;
 import crashcourse.k.library.main.KMain;
 import crashcourse.k.library.util.LUtils;
 import crashcourse.k.library.util.StackTraceInfo;
@@ -77,11 +79,12 @@ public class DisplayLayer {
 		Display.create();
 		Display.setFullscreen(fullscreen);
 		Display.setResizable(resizable && !fullscreen);
+		KMain.setInst(main);
+		Mods.findAndLoad();
 		GLState.initOpenGL();
 		FPS.init(0);
 		FPS.setTitle(reqTitle);
 		main.init(args);
-		KMain.setInst(main);
 	}
 
 	public static void initDisplay(boolean fullscreen, int width, int height,
