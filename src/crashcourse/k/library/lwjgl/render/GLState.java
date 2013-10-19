@@ -1,7 +1,9 @@
-package crashcourse.k.library.lwjgl;
+package crashcourse.k.library.lwjgl.render;
 
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
+
+import crashcourse.k.library.lwjgl.render.RenderManager;
 
 /** All OpenGL will be handled here */
 public class GLState {
@@ -25,6 +27,7 @@ public class GLState {
 		GL11.glDepthFunc(GL11.GL_LEQUAL); // The Type Of Depth Test To Do
 		GL11.glHint(GL11.GL_PERSPECTIVE_CORRECTION_HINT, GL11.GL_NICEST);
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		RenderManager.registerRenders();
 	}
 
 	public static void resizedRefresh() {
