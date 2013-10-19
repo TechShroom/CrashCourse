@@ -3,6 +3,7 @@ package crashcourse.k.library.internalstate;
 public abstract class Entity {
 	public float posX, posY, posZ;
 	public float motionX, motionY, motionZ;
+	public float yaw, pitch;
 	
 	/**
 	 * Attempts to move with the current motion X-Z values
