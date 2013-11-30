@@ -1,10 +1,8 @@
 package crashcourse.k.library.lwjgl;
 
-import java.awt.Canvas;
+import java.awt.Frame;
 import java.awt.Toolkit;
 import java.lang.instrument.IllegalClassFormatException;
-
-import javax.swing.JFrame;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.Sys;
@@ -15,7 +13,8 @@ import crashcourse.k.exst.mods.Mods;
 import crashcourse.k.library.debug.FPS;
 import crashcourse.k.library.lwjgl.control.Keys;
 import crashcourse.k.library.lwjgl.control.MouseHelp;
-import crashcourse.k.library.lwjgl.render.GLState;
+import crashcourse.k.library.lwjgl.render.GLPrep;
+import crashcourse.k.library.lwjgl.tex.Texture;
 import crashcourse.k.library.main.KMain;
 import crashcourse.k.library.util.LUtils;
 import crashcourse.k.library.util.StackTraceInfo;
@@ -25,24 +24,76 @@ import de.matthiasmann.twl.renderer.lwjgl.LWJGLRenderer;
 public class DisplayLayer {
 
 	private static String reqTitle = "";
-	private static Canvas theCanvas = new Canvas();
-	private static JFrame screen;
 	private static boolean wasResizable;
 	private static LWJGLRenderer renderer;
 
+	/**
+	 * Initializes the display and KMain instance. Parameter notes are found on
+	 * the longest argument version.
+	 * 
+	 * @param fullscreen
+	 *            - is fullscreen on at start?
+	 * @param width
+	 *            - initial width of screen
+	 * @param height
+	 *            - initial height of screen
+	 * @param title
+	 *            - title of screen
+	 * @param resizable
+	 *            - is the screen resizeable?
+	 * @param args
+	 *            - main() args
+	 * @throws Exception
+	 *             any exceptions will be thrown
+	 */
 	public static void initDisplay(boolean fullscreen, int width, int height,
 			String title, boolean resizable, String[] args) throws Exception {
+		DisplayLayer.initDisplay(fullscreen, width, height, title, resizable,
+				true, args);
+	}
+
+	/**
+	 * Initializes the display and KMain instance. Parameter notes are found on
+	 * the longest argument version.
+	 * 
+	 * @param fullscreen
+	 *            - is fullscreen on at start?
+	 * @param width
+	 *            - initial width of screen
+	 * @param height
+	 *            - initial height of screen
+	 * @param title
+	 *            - title of screen
+	 * @param resizable
+	 *            - is the screen resizeable?
+	 * @param args
+	 *            - main() args
+	 * @param vsync
+	 *            - overrides default vsync option, true
+	 * @throws Exception
+	 *             any exceptions will be thrown
+	 */
+	public static void initDisplay(boolean fullscreen, int width, int height,
+			String title, boolean resizable, boolean vsync, String[] args)
+			throws Exception {
 		System.out.println("[CrashCourse] Using LWJGL v" + Sys.getVersion());
 		try {
-			initDisplay(fullscreen, width, height, title, resizable, args,
-					Class.forName(StackTraceInfo.getInvokingClassName())
-							.asSubclass(KMain.class));
+			DisplayLayer.initDisplay(
+					fullscreen,
+					width,
+					height,
+					title,
+					resizable,
+					vsync,
+					args,
+					Class.forName(
+							LUtils.getFirstEntryNotThis(DisplayLayer.class
+									.getName())).asSubclass(KMain.class));
 			System.out.println("[CrashCourse] Using OpenGL v"
 					+ LUtils.getGLVer());
 		} catch (ClassCastException cce) {
 			if (cce.getStackTrace()[StackTraceInfo.CLIENT_CODE_STACK_INDEX]
 					.getClassName().equals(DisplayLayer.class.getName())) {
-				cce.printStackTrace();
 				throw new IllegalClassFormatException("Class "
 						+ Class.forName(StackTraceInfo.getInvokingClassName())
 						+ " not implementing KMain!");
@@ -52,45 +103,42 @@ public class DisplayLayer {
 		}
 	}
 
+	/**
+	 * Initializes the display and KMain instance. Parameter notes are found on
+	 * the longest argument version.
+	 * 
+	 * @param fullscreen
+	 *            - is fullscreen on at start?
+	 * @param width
+	 *            - initial width of screen
+	 * @param height
+	 *            - initial height of screen
+	 * @param title
+	 *            - title of screen
+	 * @param resizable
+	 *            - is the screen resizeable?
+	 * @param args
+	 *            - main() args
+	 * @param vsync
+	 *            - is vsync enabled?
+	 * @param cls
+	 *            - overrides the default class for KMain, which is the class
+	 *            that called the method
+	 * @throws Exception
+	 *             any exceptions will be thrown
+	 */
+
 	public static void initDisplay(boolean fullscreen, int width, int height,
-			String title, boolean resizable, String[] args, KMain main)
-			throws Exception {
-		DisplayMode dm = LUtils.getDisplayMode(width, height, fullscreen);
-		if (!dm.isFullscreenCapable() && fullscreen) {
-			System.err
-					.println("Warning! Fullscreen is not supported with width "
-							+ width + " and height " + height);
-			fullscreen = false;
-		}
-		reqTitle = title.toString();
-		Display.setDisplayMode(dm);
-		screen = new JFrame();
-		theCanvas.setSize(width, height);
-		screen.add(theCanvas);
-		screen.pack();
-		screen.setResizable(resizable && !fullscreen);
-		screen.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		// screen.setVisible(true);
-		// Display.setParent(theCanvas);
-		if (!fullscreen) {
-			screen.setTitle(reqTitle);
-			Display.setTitle(reqTitle);
-		}
-		Display.create();
-		Display.setFullscreen(fullscreen);
-		Display.setResizable(resizable && !fullscreen);
-		KMain.setInst(main);
-		Mods.findAndLoad();
-		GLState.initOpenGL();
-		FPS.init(0);
-		FPS.setTitle(reqTitle);
-		main.init(args);
+			String title, boolean resizable, boolean vsync, String[] args,
+			Class<? extends KMain> cls) throws Exception {
+		KMain main = cls.newInstance();
+		DisplayLayer.initDisplay(fullscreen, width, height, title, resizable,
+				vsync, args, main);
 	}
 
 	public static void initDisplay(boolean fullscreen, int width, int height,
-			String title, boolean resizable, String[] args,
-			Class<? extends KMain> cls) throws Exception {
-		KMain main = cls.newInstance();
+			String title, boolean resizable, boolean vsync, String[] args,
+			KMain main) throws Exception {
 		DisplayMode dm = LUtils.getDisplayMode(width, height, fullscreen);
 		if (!dm.isFullscreenCapable() && fullscreen) {
 			System.err
@@ -98,78 +146,90 @@ public class DisplayLayer {
 							+ width + " and height " + height);
 			fullscreen = false;
 		}
-		reqTitle = title.toString();
+		DisplayLayer.reqTitle = title.toString();
 		Display.setDisplayMode(dm);
-		screen = new JFrame();
-		theCanvas.setSize(width, height);
-		screen.add(theCanvas);
-		screen.pack();
-		screen.setResizable(resizable && !fullscreen);
-		screen.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		// screen.setVisible(true);
-		// Display.setParent(theCanvas);
 		if (!fullscreen) {
-			screen.setTitle(reqTitle);
-			Display.setTitle(reqTitle);
+			Display.setTitle(DisplayLayer.reqTitle);
 		}
 		Display.create();
 		Display.setFullscreen(fullscreen);
 		Display.setResizable(resizable && !fullscreen);
-		GLState.initOpenGL();
-		FPS.init(0);
-		FPS.setTitle(reqTitle);
-		main.init(args);
+		Display.setVSyncEnabled(vsync);
+		KMain.setDisplayThread(Thread.currentThread());
 		KMain.setInst(main);
+		Mods.findAndLoad();
+		GLPrep.initOpenGL();
+		FPS.init(0);
+		FPS.setTitle(DisplayLayer.reqTitle);
+		main.init(args);
 	}
 
 	public static void loop(int dfps) throws LWJGLException {
 		Display.sync(dfps);
-		Keys.read();
-		MouseHelp.read();
 		int delta = FPS.update(0);
 		if (Display.wasResized()) {
-			GLState.resizedRefresh();
+			GLPrep.resizedRefresh();
 		}
-		GLState.update(delta);
-		MouseHelp.onDisplayUpdate();
+		GLPrep.update(delta);
 		KMain.getInst().onDisplayUpdate(delta);
-		Display.update();
+		MouseHelp.onDisplayUpdate();
+		Display.update(false);
+		OrgLWJGLOpenGLPackageAccess.updateImplementation();
+		Texture.doBindings();
+	}
+
+	public static void readDevices() {
+		OrgLWJGLOpenGLPackageAccess.pollDevices();
+		Keys.read();
+		MouseHelp.read();
 	}
 
 	public static void intoFull() throws LWJGLException {
 		Display.setFullscreen(true);
-		wasResizable = Display.isResizable();
+		DisplayLayer.wasResizable = Display.isResizable();
 		Display.setResizable(false);
 	}
 
 	public static void outOfFull() throws LWJGLException {
-		Display.setResizable(wasResizable);
+		Display.setResizable(DisplayLayer.wasResizable);
 		Display.setFullscreen(false);
 	}
 
 	public static void destroy() {
 		Display.destroy();
-		screen.dispose();
+		Frame[] frms = Frame.getFrames();
+		for (Frame frm : frms) {
+			if (frm.isVisible()) {
+				frm.setVisible(false);
+				frm.dispose();
+				System.err
+						.println("CrashCourse has closed a JFrame called "
+								+ frm.getTitle()
+								+ ", which would have stalled the application's closing state. Please fix this!");
+			}
+		}
 	}
 
 	public static void toggleFull() {
 		try {
 			if (Display.isFullscreen()) {
-				outOfFull();
+				DisplayLayer.outOfFull();
 			} else {
-				intoFull();
+				DisplayLayer.intoFull();
 			}
 		} catch (LWJGLException e) {
 		}
 	}
 
 	/**
-	 * 
+	 * @deprecated Not useful anymore, calls should go to
+	 *             {@link DisplayMode#isFullscreenCapable()}
 	 * @param width
 	 * @param height
 	 * @param fullscreen
 	 * @return if the aspect ratio matches with the current screen
 	 */
+	@Deprecated
 	public static boolean compatibleWithFullscreen(int width, int height,
 			boolean fullscreen) {
 		int dw, dh;
@@ -182,8 +242,9 @@ public class DisplayLayer {
 
 	public static Renderer getLWJGLRenderer() {
 		try {
-			return renderer != null ? renderer
-					: (renderer = new LWJGLRenderer());
+			return DisplayLayer.renderer != null
+					? DisplayLayer.renderer
+					: (DisplayLayer.renderer = new LWJGLRenderer());
 		} catch (LWJGLException e) {
 			e.printStackTrace();
 		}

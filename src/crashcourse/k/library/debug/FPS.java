@@ -3,31 +3,38 @@ package crashcourse.k.library.debug;
 import org.lwjgl.Sys;
 import org.lwjgl.opengl.Display;
 
+import crashcourse.k.library.main.KMain;
+
 public class FPS {
-	public static final long millis = 1000, micro = 1000 * millis;
+	public static final long millis = 1000, micro = 1000 * FPS.millis;
+	public static int maxFPSCounters = 100;
+	private static int nextIndex = 1;
 	/** time at last frame */
-	private static long[] lastFrame = new long[100];
+	private static long[] lastFrame = new long[FPS.maxFPSCounters];
 	/** frames per second */
-	private static int fps;
+	private static int[] fps = new int[FPS.maxFPSCounters];
 	/** last fps time */
-	private static long[] lastFPS = new long[100];
+	private static long[] lastFPS = new long[FPS.maxFPSCounters];
 	private static String permTitle = "";
-	private static boolean enabled;
+	private static boolean[] enabled = new boolean[FPS.maxFPSCounters];
+	private static boolean[] hasFPSTitle = new boolean[FPS.maxFPSCounters];
+	private static String tempTitle;
 
 	public static int update(int index) {
-		int del = getDelta(index);
-		updateFPS(index);
+		FPS.setTitleIfNotSet();
+		int del = FPS.getDelta(index);
+		FPS.updateFPS(index);
 		return del;
 	}
 
 	public static void init(int index) {
-		init(index, millis);
+		FPS.init(index, FPS.millis);
 	}
 
 	public static void init(int index, long divis) {
-		getDelta(index, divis);
-		lastFPS[index] = getTime(divis);
-		permTitle = Display.getTitle();
+		FPS.getDelta(index, divis);
+		FPS.lastFPS[index] = FPS.getTime(divis);
+		FPS.permTitle = Display.getTitle();
 	}
 
 	/**
@@ -39,7 +46,7 @@ public class FPS {
 	 * @return milliseconds passed since last frame
 	 */
 	public static int getDelta(int index) {
-		return getDelta(index, millis);
+		return FPS.getDelta(index, FPS.millis);
 	}
 
 	/**
@@ -53,15 +60,15 @@ public class FPS {
 	 * @return divisions passed since last frame
 	 */
 	public static int getDelta(int index, long divis) {
-		long time = getTime(divis);
-		int delta = (int) (time - lastFrame[index]);
-		lastFrame[index] = time;
+		long time = FPS.getTime(divis);
+		int delta = (int) (time - FPS.lastFrame[index]);
+		FPS.lastFrame[index] = time;
 
 		return delta;
 	}
 
 	public static long getTime(long divis) {
-		return (Sys.getTime() * divis) / Sys.getTimerResolution();
+		return Sys.getTime() * divis / Sys.getTimerResolution();
 	}
 
 	/**
@@ -72,35 +79,56 @@ public class FPS {
 	 * @return The system time in milliseconds
 	 */
 	public static long getTime() {
-		return getTime(millis);
+		return FPS.getTime(FPS.millis);
 	}
 
 	/**
 	 * Calculate the FPS and set it in the title bar
 	 */
 	private static void updateFPS(int index) {
-		if (getTime() - lastFPS[index] > 1000) {
-			if (enabled) {
-				Display.setTitle(permTitle + " FPS: " + fps);
-			} else {
-				Display.setTitle(permTitle);
+		if (FPS.getTime() - FPS.lastFPS[index] > 1000) {
+			if (FPS.enabled[index]) {
+				FPS.setTitleOnDisplayThread(FPS.fps[index]);
+				FPS.hasFPSTitle[index] = true;
+			} else if (FPS.hasFPSTitle[index]) {
+				Display.setTitle(FPS.permTitle);
 			}
-			fps = 0;
-			lastFPS[index] += 1000;
+			FPS.fps[index] = 0;
+			FPS.lastFPS[index] += 1000;
 		}
-		fps++;
+		FPS.fps[index]++;
+	}
+
+	private synchronized static void setTitleOnDisplayThread(int fps) {
+		FPS.tempTitle = FPS.permTitle + " FPS: " + fps;
+		FPS.setTitleIfNotSet();
+	}
+
+	private static void setTitleIfNotSet() {
+		if (Thread.currentThread().equals(KMain.getDisplayThread())
+				&& FPS.tempTitle != null) {
+			Display.setTitle(FPS.tempTitle);
+			FPS.tempTitle = null;
+		}
 	}
 
 	public static void setTitle(String reqTitle) {
-		permTitle = reqTitle;
+		FPS.permTitle = reqTitle;
 	}
 
-	public static void enable() {
-		enabled = true;
+	public static void enable(int index) {
+		FPS.enabled[index] = true;
 	}
 
-	public static void disable() {
-		enabled = false;
+	public static void disable(int index) {
+		FPS.enabled[index] = false;
+	}
+
+	public static int genIndex() {
+		if (FPS.nextIndex > FPS.maxFPSCounters) {
+			throw new IndexOutOfBoundsException("Too many FPS counters");
+		}
+		return FPS.nextIndex++;
 	}
 
 }

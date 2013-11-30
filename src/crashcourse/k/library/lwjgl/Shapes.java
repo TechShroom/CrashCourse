@@ -1,24 +1,23 @@
 package crashcourse.k.library.lwjgl;
 
-import java.awt.Color;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import k.core.util.Helper;
+
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.glu.Sphere;
 
 import crashcourse.k.library.lwjgl.tex.ColorTexture;
 import crashcourse.k.library.lwjgl.tex.Texture;
-import crashcourse.k.library.util.ArrayHelper;
 import crashcourse.k.library.util.LUtils;
 
 public class Shapes {
-	private static final Texture texRed = new ColorTexture(Color.RED);
-	private static final Texture texBlue = new ColorTexture(Color.BLUE);
-	private static final Texture texGreen = new ColorTexture(Color.GREEN);
-	private static final Texture texYellow = new ColorTexture(Color.YELLOW);
-	private static final Texture texWhite = new ColorTexture(Color.WHITE);
-	private static final Texture texPurple = new ColorTexture(Color.MAGENTA);
 
 	public static final int XYF = 0x01;
 	public static final int XZT = 0x02;
@@ -29,117 +28,128 @@ public class Shapes {
 
 	private static HashMap<String, Integer> shapes = new HashMap<String, Integer>();
 	{
-		shapes.put("cube", 0);
-		shapes.put("quad", 1);
-		shapes.put("sphere", 2);
+		Shapes.shapes.put("cube", 0);
+		Shapes.shapes.put("quad", 1);
+		Shapes.shapes.put("sphere", 2);
 	}
 
 	public static ArrayList<String> getSupportedShapes() {
-		return new ArrayList<String>(shapes.keySet());
+		return new ArrayList<String>(Shapes.shapes.keySet());
 	}
 
-	public static void glShapeByName(int x, int y, int z, int[] verticies,
-			Object[] extra, String name) {
-		int shape = shapes.get(name) == null ? 0 : shapes.get(name);
+	public static void glShapeByName(float x, float y, float z,
+			float[] verticies, Object[] extra, String name) {
+		int shape = Shapes.shapes.get(name) == null ? 0 : Shapes.shapes
+				.get(name);
 		switch (shape) {
-		case 0:
-			glCube(x, y, z, verticies[0], verticies[1], verticies[2],
-					ArrayHelper.arrayTranslate(Texture.class, extra));
-			break;
-		case 1:
-			glQuad(x, y, z, verticies[0], verticies[1], verticies[2],
-					(Integer) extra[0], (Texture) extra[1]);
-			break;
-		case 2:
-			glSphere(x, y, z, (Float) extra[0], (Integer) extra[1],
-					(Texture) extra[2]);
-			break;
+			case 0 :
+				Shapes.glCube(x, y, z, verticies[0], verticies[1],
+						verticies[2],
+						Helper.Arrays.arrayTranslate(Texture.class, extra));
+				break;
+			case 1 :
+				Shapes.glQuad(x, y, z, verticies[0], verticies[1],
+						verticies[2], (Integer) extra[0], (Texture) extra[1]);
+				break;
+			case 2 :
+				Shapes.glSphere(x, y, z, (Float) extra[0], (Integer) extra[1],
+						(Texture) extra[2]);
+				break;
 		}
 	}
 
-	public static void glCube(int x, int y, int z, int w, int h, int l,
-			Texture[] tex) {
-		glQuad(x, y, z, w, h, l, XZT, LUtils.getArg(tex, 2, texGreen));
-		glQuad(x, y, z, w, h, l, XZB, LUtils.getArg(tex, 3, texYellow));
-		glQuad(x, y, z, w, h, l, XYF, LUtils.getArg(tex, 0, texRed));
-		glQuad(x, y, z, w, h, l, XYB, LUtils.getArg(tex, 1, texBlue));
-		glQuad(x, y, z, w, h, l, YZL, LUtils.getArg(tex, 4, texWhite));
-		glQuad(x, y, z, w, h, l, YZR, LUtils.getArg(tex, 5, texPurple));
+	public static void glCube(float x, float y, float z, float w, float h,
+			float l, Texture[] tex) {
+		Shapes.glQuad(x, y, z, w, h, l, Shapes.XZT,
+				LUtils.getArg(tex, 2, ColorTexture.GREEN));
+		Shapes.glQuad(x, y, z, w, h, l, Shapes.XZB,
+				LUtils.getArg(tex, 3, ColorTexture.YELLOW));
+		Shapes.glQuad(x, y, z, w, h, l, Shapes.XYF,
+				LUtils.getArg(tex, 0, ColorTexture.RED));
+		Shapes.glQuad(x, y, z, w, h, l, Shapes.XYB,
+				LUtils.getArg(tex, 1, ColorTexture.BLUE));
+		Shapes.glQuad(x, y, z, w, h, l, Shapes.YZL,
+				LUtils.getArg(tex, 4, ColorTexture.WHITE));
+		Shapes.glQuad(x, y, z, w, h, l, Shapes.YZR,
+				LUtils.getArg(tex, 5, ColorTexture.PURPLE));
 	}
 
-	public static void glQuad(int x, int y, int z, int w, int h, int l,
-			int dir, Texture t) {
+	public static void glQuad(float x, float y, float z, float w, float h,
+			float l, int dir, Texture t) {
+		if (t == null) {
+			t = ColorTexture.WHITE;
+		}
 		t.bind();
 		GL11.glPushMatrix();
 		GL11.glTranslatef(x, y, z);
 		GL11.glBegin(GL11.GL_QUADS);
-		if (dir == XZT) {
-			t.glTextureVertex(0, 0);
+		if (dir == Shapes.XZT) {
 			GL11.glVertex3f(w, h, 0);// Top (x:0,y=h,z:0)
-			t.glTextureVertex(0, 1);
-			GL11.glVertex3f(0, h, 0);
-			t.glTextureVertex(1, 1);
-			GL11.glVertex3f(0, h, l);
-			t.glTextureVertex(1, 0);
-			GL11.glVertex3f(w, h, l);
-		}
-		if (dir == XZB) {
 			t.glTextureVertex(0, 0);
+			GL11.glVertex3f(0, h, 0);
+			t.glTextureVertex(0, 1);
+			GL11.glVertex3f(0, h, l);
+			t.glTextureVertex(1, 1);
+			GL11.glVertex3f(w, h, l);
+			t.glTextureVertex(1, 0);
+		}
+		if (dir == Shapes.XZB) {
 			GL11.glVertex3f(w, 0, l);// Bottom (x:0,y=0,z:0)
-			t.glTextureVertex(0, 1);
-			GL11.glVertex3f(0, 0, l);
-			t.glTextureVertex(1, 1);
-			GL11.glVertex3f(0, 0, 0);
-			t.glTextureVertex(1, 0);
-			GL11.glVertex3f(w, 0, 0);
-		}
-		if (dir == XYF) {
 			t.glTextureVertex(0, 0);
+			GL11.glVertex3f(0, 0, l);
+			t.glTextureVertex(0, 1);
+			GL11.glVertex3f(0, 0, 0);
+			t.glTextureVertex(1, 1);
+			GL11.glVertex3f(w, 0, 0);
+			t.glTextureVertex(1, 0);
+		}
+		if (dir == Shapes.XYF) {
 			GL11.glVertex3f(w, h, l);// Front (x:0,y:0,z=l)
-			t.glTextureVertex(0, 1);
+			t.glTextureVertex(0, 0);
 			GL11.glVertex3f(0, h, l);
-			t.glTextureVertex(1, 1);
+			t.glTextureVertex(0, 1);
 			GL11.glVertex3f(0, 0, l);
-			t.glTextureVertex(1, 0);
+			t.glTextureVertex(1, 1);
 			GL11.glVertex3f(w, 0, l);
+			t.glTextureVertex(1, 0);
 		}
-		if (dir == XYB) {
-			t.glTextureVertex(0, 0);
+		if (dir == Shapes.XYB) {
 			GL11.glVertex3f(w, 0, 0);// Back (x:0,y:0,z=0)
-			t.glTextureVertex(0, 1);
+			t.glTextureVertex(0, 0);
 			GL11.glVertex3f(0, 0, 0);
-			t.glTextureVertex(1, 1);
+			t.glTextureVertex(0, 1);
 			GL11.glVertex3f(0, h, 0);
-			t.glTextureVertex(1, 0);
+			t.glTextureVertex(1, 1);
 			GL11.glVertex3f(w, h, 0);
+			t.glTextureVertex(1, 0);
 		}
-		if (dir == YZL) {
-			t.glTextureVertex(0, 0);
+		if (dir == Shapes.YZL) {
 			GL11.glVertex3f(0, h, l);// Left (x=0,y:0,z:0)
-			t.glTextureVertex(0, 1);
-			GL11.glVertex3f(0, h, 0);
-			t.glTextureVertex(1, 1);
-			GL11.glVertex3f(0, 0, 0);
-			t.glTextureVertex(1, 0);
-			GL11.glVertex3f(0, 0, l);
-		}
-		if (dir == YZR) {
 			t.glTextureVertex(0, 0);
-			GL11.glVertex3f(w, h, 0);// Right (x=w,y:0,z:0)
+			GL11.glVertex3f(0, h, 0);
 			t.glTextureVertex(0, 1);
-			GL11.glVertex3f(w, h, l);
+			GL11.glVertex3f(0, 0, 0);
 			t.glTextureVertex(1, 1);
-			GL11.glVertex3f(w, 0, l);
+			GL11.glVertex3f(0, 0, l);
 			t.glTextureVertex(1, 0);
+		}
+		if (dir == Shapes.YZR) {
+			GL11.glVertex3f(w, h, 0);// Right (x=w,y:0,z:0)
+			t.glTextureVertex(0, 0);
+			GL11.glVertex3f(w, h, l);
+			t.glTextureVertex(0, 1);
+			GL11.glVertex3f(w, 0, l);
+			t.glTextureVertex(1, 1);
 			GL11.glVertex3f(w, 0, 0);
+			t.glTextureVertex(1, 0);
 		}
 		GL11.glEnd();
 
 		GL11.glPopMatrix();
 	}
 
-	public static void glSphere(int x, int y, int z, float r, int quality,
-			Texture t) {
+	public static void glSphere(float x, float y, float z, float r,
+			int quality, Texture t) {
 		GL11.glPushMatrix();
 		GL11.glTranslatef(x, y, z);
 		Sphere s = new Sphere();
@@ -147,5 +157,21 @@ public class Shapes {
 		t.bind();
 		s.draw(r, quality, quality);
 		GL11.glPopMatrix();
+	}
+
+	public static void renderVBO(int vao, int vCount) {
+
+		// Draw
+
+		// Bind to the VAO that has all the information about the quad vertices
+		GL30.glBindVertexArray(vao);
+		GL20.glEnableVertexAttribArray(0);
+
+		// Draw the vertices
+		GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, vCount);
+
+		// Put everything back to default (deselect)
+		GL20.glDisableVertexAttribArray(0);
+		GL30.glBindVertexArray(0);
 	}
 }

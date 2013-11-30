@@ -38,6 +38,8 @@ import org.lwjgl.Sys;
  * A highly accurate sync method that continually adapts to the system it runs
  * on to provide reliable results.
  * 
+ * Modified to allow instances of different syncs.
+ * 
  * @author Riven
  * @author kappaOne
  */
@@ -60,12 +62,24 @@ public class Sync {
 		// Starts Windows hack if needed
 		String osName = System.getProperty("os.name");
 
-		if (osName.startsWith("Win")) {
+		// Prevents this class from starting extra thread as
+		// org.lwjgl.opengl.Sync usually does this part.
+		Thread[] t_s = new Thread[Thread.activeCount()];
+		Thread.enumerate(t_s);
+		boolean needsAccuracy = true;
+		for (Thread t : t_s) {
+			if (t.getName().equals("LWJGL Timer")) {
+				needsAccuracy = false;
+			}
+		}
+
+		if (osName.startsWith("Win") && needsAccuracy) {
 			// On windows the sleep functions can be highly inaccurate by
 			// over 10ms making in unusable. However it can be forced to
 			// be a bit more accurate by running a separate sleeping daemon
 			// thread.
 			Thread timerAccuracyThread = new Thread(new Runnable() {
+				@Override
 				public void run() {
 					try {
 						Thread.sleep(Long.MAX_VALUE);
@@ -88,16 +102,17 @@ public class Sync {
 	 *            - the desired frame rate, in frames per second
 	 */
 	public void sync(int fps) {
-		if (fps <= 0)
+		if (fps <= 0) {
 			return;
-		if (!initialised)
+		}
+		if (!initialised) {
 			initialise();
+		}
 
 		try {
 			// sleep until the average sleep time is greater than the time
 			// remaining till nextFrame
-			for (long t0 = getTime(), t1; (nextFrame - t0) > sleepDurations
-					.avg(); t0 = t1) {
+			for (long t0 = getTime(), t1; nextFrame - t0 > sleepDurations.avg(); t0 = t1) {
 				Thread.sleep(1);
 				sleepDurations.add((t1 = getTime()) - t0); // update average
 															// sleep time
@@ -109,8 +124,7 @@ public class Sync {
 
 			// yield until the average yield time is greater than the time
 			// remaining till nextFrame
-			for (long t0 = getTime(), t1; (nextFrame - t0) > yieldDurations
-					.avg(); t0 = t1) {
+			for (long t0 = getTime(), t1; nextFrame - t0 > yieldDurations.avg(); t0 = t1) {
 				Thread.yield();
 				yieldDurations.add((t1 = getTime()) - t0); // update average
 															// yield time
@@ -120,7 +134,7 @@ public class Sync {
 		}
 
 		// schedule next frame, drop frame(s) if already too late for next frame
-		nextFrame = Math.max(nextFrame + NANOS_IN_SECOND / fps, getTime());
+		nextFrame = Math.max(nextFrame + Sync.NANOS_IN_SECOND / fps, getTime());
 	}
 
 	/**
@@ -144,7 +158,7 @@ public class Sync {
 	 * @return will return the current time in nano's
 	 */
 	private long getTime() {
-		return (Sys.getTime() * NANOS_IN_SECOND) / Sys.getTimerResolution();
+		return Sys.getTime() * Sync.NANOS_IN_SECOND / Sys.getTimerResolution();
 	}
 
 	private static class RunningAvg {
@@ -156,33 +170,33 @@ public class Sync {
 															// is exactly right!
 
 		public RunningAvg(int slotCount) {
-			this.slots = new long[slotCount];
-			this.offset = 0;
+			slots = new long[slotCount];
+			offset = 0;
 		}
 
 		public void init(long value) {
-			while (this.offset < this.slots.length) {
-				this.slots[this.offset++] = value;
+			while (offset < slots.length) {
+				slots[offset++] = value;
 			}
 		}
 
 		public void add(long value) {
-			this.slots[this.offset++ % this.slots.length] = value;
-			this.offset %= this.slots.length;
+			slots[offset++ % slots.length] = value;
+			offset %= slots.length;
 		}
 
 		public long avg() {
 			long sum = 0;
-			for (int i = 0; i < this.slots.length; i++) {
-				sum += this.slots[i];
+			for (int i = 0; i < slots.length; i++) {
+				sum += slots[i];
 			}
-			return sum / this.slots.length;
+			return sum / slots.length;
 		}
 
 		public void dampenForLowResTicker() {
-			if (this.avg() > DAMPEN_THRESHOLD) {
-				for (int i = 0; i < this.slots.length; i++) {
-					this.slots[i] *= DAMPEN_FACTOR;
+			if (avg() > RunningAvg.DAMPEN_THRESHOLD) {
+				for (int i = 0; i < slots.length; i++) {
+					slots[i] *= RunningAvg.DAMPEN_FACTOR;
 				}
 			}
 		}

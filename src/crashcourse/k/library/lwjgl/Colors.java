@@ -28,7 +28,7 @@ public class Colors {
 		color.get(c);
 		int in = 0;
 		for (float f : c) {
-			System.out.println((Float.compare(f, 0)) + "@" + in++);
+			System.out.println(Float.compare(f, 0) + "@" + in++);
 		}
 		return Color.WHITE;
 	}

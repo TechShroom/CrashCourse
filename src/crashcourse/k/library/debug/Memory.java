@@ -1,11 +1,11 @@
 package crashcourse.k.library.debug;
 
-import crashcourse.k.library.util.ArrayHelper;
+import k.core.util.Helper;
 
 public class Memory {
-	private static long lastF = getFree();
-	private static long lastM = getMax();
-	private static long lastT = getTotal();
+	private static long lastF = Memory.getFree();
+	private static long lastM = Memory.getMax();
+	private static long lastT = Memory.getTotal();
 
 	private Memory() {
 		System.out.println("AHEM! Don't create this class!");
@@ -18,21 +18,21 @@ public class Memory {
 	}
 
 	public static void printFree() {
-		long free = getFree();
+		long free = Memory.getFree();
 		System.out.println("FREE_MEM: " + free);
-		lastF = free;
+		Memory.lastF = free;
 	}
 
 	public static void printMax() {
-		long max = getMax();
+		long max = Memory.getMax();
 		System.out.println("MAX_MEM: " + max);
-		lastM = max;
+		Memory.lastM = max;
 	}
 
 	public static void printTotal() {
-		long total = getTotal();
+		long total = Memory.getTotal();
 		System.out.println("TOTAL_MEM: " + total);
-		lastT = total;
+		Memory.lastT = total;
 	}
 
 	public static long getFree() {
@@ -48,31 +48,31 @@ public class Memory {
 	}
 
 	public static void printAll() {
-		printFree();
-		printMax();
-		printTotal();
+		Memory.printFree();
+		Memory.printMax();
+		Memory.printTotal();
 	}
 
 	public static void comparePrint() {
 		String[] lines = new String[3];
-		if (getFree() < lastF) {
+		if (Memory.getFree() < Memory.lastF) {
 			lines[0] = "Free memory is less.";
 		} else {
 			lines[0] = "Free memory is more!";
 		}
 
-		if (getMax() < lastM) {
+		if (Memory.getMax() < Memory.lastM) {
 			lines[1] = "Max memory is less.";
 		} else {
 			lines[1] = "Max memory is more!";
 		}
 
-		if (getTotal() < lastT) {
+		if (Memory.getTotal() < Memory.lastT) {
 			lines[2] = "Total memory is less.";
 		} else {
 			lines[2] = "Total memory is more!";
 		}
-		ArrayHelper.dump(lines);
+		Helper.Arrays.dump(lines);
 	}
 
 	public static void gc() {

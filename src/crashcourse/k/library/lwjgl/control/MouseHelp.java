@@ -1,5 +1,6 @@
 package crashcourse.k.library.lwjgl.control;
 
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.nio.IntBuffer;
 
@@ -7,12 +8,11 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Cursor;
 import org.lwjgl.input.Mouse;
-import org.lwjgl.util.Rectangle;
 
 import crashcourse.k.library.lwjgl.Shapes;
 import crashcourse.k.library.lwjgl.tex.BufferedTexture;
 import crashcourse.k.library.lwjgl.tex.Texture;
-import crashcourse.k.library.util.LUtils;
+import crashcourse.k.library.util.DrawableUtils;
 
 public class MouseHelp {
 	private static class FakeCursor {
@@ -32,7 +32,7 @@ public class MouseHelp {
 
 	}
 
-	public static final int LMB = 0, RMB = 1;
+	public static final int LMB = 0, RMB = 1, ANY = -1;
 
 	private static MouseHelp inst = new MouseHelp();
 	private int dx = 0;
@@ -41,32 +41,35 @@ public class MouseHelp {
 	private int y = 0;
 	private FakeCursor fake;
 	public static int buttons;
-	private boolean[] thisFrameClick = new boolean[buttons];
-	private boolean[] lastFrameClick = new boolean[buttons];
+	private boolean[] thisFrameClick = new boolean[MouseHelp.buttons];
+	private boolean[] lastFrameClick = new boolean[MouseHelp.buttons];
 	private static Cursor nativec = null;
 
 	private MouseHelp() {
 		try {
 			Mouse.create();
-			nativec = Mouse.getNativeCursor();
+			MouseHelp.nativec = Mouse.getNativeCursor();
 			Mouse.setClipMouseCoordinatesToWindow(false);
-			inst = this;
-			buttons = Mouse.getButtonCount();
-			thisFrameClick = new boolean[buttons];
-			lastFrameClick = new boolean[buttons];
+			MouseHelp.inst = this;
+			MouseHelp.buttons = Mouse.getButtonCount();
+			thisFrameClick = new boolean[MouseHelp.buttons];
+			lastFrameClick = new boolean[MouseHelp.buttons];
 		} catch (LWJGLException e) {
 			e.printStackTrace();
 		}
 	}
 
 	public static void read() {
-		inst.dx = Mouse.getDX();
-		inst.dy = Mouse.getDY();
-		inst.x = Mouse.getX();
-		inst.y = Mouse.getY();
-		for (int i = 0; i < buttons; i++) {
-			inst.lastFrameClick[i] = inst.thisFrameClick[i];
-			inst.thisFrameClick[i] = Mouse.isButtonDown(i);
+		try {
+			MouseHelp.inst.dx = Mouse.getDX();
+			MouseHelp.inst.dy = Mouse.getDY();
+			MouseHelp.inst.x = Mouse.getX();
+			MouseHelp.inst.y = Mouse.getY();
+			for (int i = 0; i < MouseHelp.buttons; i++) {
+				MouseHelp.inst.lastFrameClick[i] = MouseHelp.inst.thisFrameClick[i];
+				MouseHelp.inst.thisFrameClick[i] = Mouse.isButtonDown(i);
+			}
+		} catch (Exception e) {
 		}
 	}
 
@@ -99,7 +102,7 @@ public class MouseHelp {
 	}
 
 	public static void replaceCursor(Texture texture, int hotx, int hoty) {
-		replaceCursor(texture.toBufferedImage(), hotx, hoty);
+		MouseHelp.replaceCursor(texture.toBufferedImage(), hotx, hoty);
 	}
 
 	/**
@@ -118,7 +121,7 @@ public class MouseHelp {
 	 */
 	public static void createFollowCursor(BufferedImage image, int hotx,
 			int hoty) {
-		createFollowCursor(new BufferedTexture(image), hotx, hoty);
+		MouseHelp.createFollowCursor(new BufferedTexture(image), hotx, hoty);
 	}
 
 	/**
@@ -143,8 +146,8 @@ public class MouseHelp {
 		 * Hide mouse cursor in our window (prevents it from derping like
 		 * Synthesia)
 		 */
-		replaceCursor(Texture.invisible, 0, 0);
-		inst.fake = new FakeCursor(texture, hotx, hoty);
+		MouseHelp.replaceCursor(Texture.invisible, 0, 0);
+		MouseHelp.inst.fake = new FakeCursor(texture, hotx, hoty);
 	}
 
 	/**
@@ -176,50 +179,72 @@ public class MouseHelp {
 		 * Hide mouse cursor in our window (prevents it from derping like
 		 * Synthesia)
 		 */
-		replaceCursor(Texture.invisible, 0, 0);
-		texture = new BufferedTexture(LUtils.scaledBufferedImage(
+		MouseHelp.replaceCursor(Texture.invisible, 0, 0);
+		texture = new BufferedTexture(DrawableUtils.scaledBufferedImage(
 				texture.toBufferedImage(), width, height));
-		inst.fake = new FakeCursor(texture, hotx, hoty);
+		MouseHelp.inst.fake = new FakeCursor(texture, hotx, hoty);
 	}
 
 	public static void resetCursor() {
 		try {
-			Mouse.setNativeCursor(nativec);
+			Mouse.setNativeCursor(MouseHelp.nativec);
 		} catch (LWJGLException e) {
 			e.printStackTrace();
 		}
 	}
 
 	public static int getDX() {
-		return inst.dx;
+		return MouseHelp.inst.dx;
 	}
 
 	public static int getDY() {
-		return inst.dy;
+		return MouseHelp.inst.dy;
 	}
 
 	public static int getX() {
-		return inst.x;
+		return MouseHelp.inst.x;
 	}
 
 	public static int getY() {
-		return inst.y;
+		return MouseHelp.inst.y;
 	}
 
 	public static boolean isButtonDown(int buttonID) {
-		return inst.thisFrameClick[buttonID];
+		if (buttonID == ANY) {
+			boolean res = false;
+			for (boolean b : inst.thisFrameClick) {
+				res = b || res;
+			}
+			return res;
+		}
+		return MouseHelp.inst.thisFrameClick[buttonID];
 	}
 
 	public static boolean wasButtonClicked(int buttonID) {
-		return inst.lastFrameClick[buttonID] && !isButtonDown(buttonID);
+		if (buttonID == ANY) {
+			boolean res = false;
+			int in = 0;
+			for (boolean b : inst.lastFrameClick) {
+				res = (b && !MouseHelp.isButtonDown(in)) || res;
+				in++;
+			}
+			return res;
+		}
+		return MouseHelp.inst.lastFrameClick[buttonID]
+				&& !MouseHelp.isButtonDown(buttonID);
 	}
 
 	public static void onDisplayUpdate() {
-		inst.onValueChanges();
+		MouseHelp.inst.onValueChanges();
 	}
 
 	public static boolean clickedInRect(Rectangle check, int buttonToCheck) {
-		return check.contains(getX(), getY())
-				&& wasButtonClicked(buttonToCheck);
+		return check.contains(MouseHelp.getX(), MouseHelp.getY())
+				&& MouseHelp.wasButtonClicked(buttonToCheck);
+	}
+
+	public static boolean clickingInRect(Rectangle check, int buttonToCheck) {
+		return check.contains(MouseHelp.getX(), MouseHelp.getY())
+				&& MouseHelp.isButtonDown(buttonToCheck);
 	}
 }
